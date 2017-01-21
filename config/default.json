@@ -1,0 +1,29 @@
+{
+    "app":
+    {
+        "name": "grasdev api",
+        "port": 4000,
+        "baseUrl": "localhost:4000"
+    },
+    "api":
+    {
+        "prefix": "/api",
+        "versions": [1]
+    },
+    "authToken":{
+        "superSecret":"api vedsarg",
+        "expiresIn" : 86400
+    },
+    "db": {
+        "mysql": {
+            "host":"localhost",
+            "database":"grasdev",
+            "username":"root",
+            "password":""
+        }
+    },
+
+    "itemsPerPage": {
+        "default": 10
+    }
+}

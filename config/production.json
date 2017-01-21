@@ -1,0 +1,14 @@
+{
+  "app":
+  {
+    "baseUrl": "grasdev.herokuapp.com"
+  },
+  "db": {
+    "mysql": {
+      "host":"198.1.71.146",
+      "database":"pledgeni_grasdev_mobile",
+      "username":"pledgeni_rollar",
+      "password":"Pledge_2016???"
+    }
+  }
+}
