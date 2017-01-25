@@ -16,4 +16,6 @@ router.route('/states/:id')
     .get(StateController.findOne)
     .put(StateController.update)
     .delete(StateController.delete);
+
+router.get('/states/:id/lgas',StateController.getLgasByState);
 module.exports = router;

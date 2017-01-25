@@ -44,9 +44,9 @@ exports.param = function (req, res, next, id) {
 
 };
 exports.findOne = function (req, res, next) {
-    var team = helper.unescapeAvatar(req.team);
+    var team = req.team;
     var meta = {code: 200, success: true};
-    res.status(meta.code).json(formatResponse.do(meta, team));
+    res.status(meta.code).json(formatResponse.do(meta, helper.processTeamImages(team)));
 };
 
 exports.find = function (req, res, next) {
@@ -70,8 +70,7 @@ exports.find = function (req, res, next) {
             var countQuery = "SELECT COUNT(id) as count_data FROM teams";
             var query = Q.all([
                 connection.query(teamsQuery),
-                connection.query(countQuery),
-
+                connection.query(countQuery)
             ]);
             connection.release();
             return query;
@@ -85,7 +84,7 @@ exports.find = function (req, res, next) {
                 meta.pagination.previous = prev;
                 meta.pagination.previous_page = helper.appendQueryString(baseRequestUrl, "page=" + prev);
             }
-            res.status(meta.status_code).json(formatResponse.do(meta, teams));
+            res.status(meta.status_code).json(formatResponse.do(meta, helper.processTeamImages(teams)));
 
         }).catch((err) => {
         console.log("err ", err);
@@ -106,24 +105,12 @@ exports.update = function (req, res, next) {
     var team = req.team;
     var obj = req.body;
     _.extend(team, obj);
-    var name = team.name;
-    var description = team.description;
-    var league_id = team.league_id;
-    var age_group_id = team.age_group_id;
-    var year_founded = team.year_founded;
-    var arena = team.arena;
-    var city = team.city;
-    var state_id = team.state_id;
-    var association_id = team.association_id;
-    var coach = team.coach;
-    var coach_mobile = team.coach_mobile;
-    var practice_time = team.practice_time;
-
     pool.getConnection()
         .then((connection) => {
-            var data = [name,description,league_id,age_group_id,year_founded,arena,city,state_id,association_id,coach,coach_mobile,practice_time,dateFormat(new Date(), "yyyy-mm-dd HH:MM:ss"), team.id],
-                queryString = 'UPDATE teams SET name=?,description=?,league_id=?,age_group_id=?,year_founded=?,arena=?,city=?,state_id=?,' +
-                    'association_id=?,coach=?,coach_mobile=?,practice_time=?,updated_at=? WHERE id=?';
+           var data =  [team.name, team.description, team.league_id, team.age_group_id, team.association_id, team.state_id, team.lga_id, team.practice_time, team.year_founded, team.arena,
+                team.city,team.coach,team.coach_mobile,team.unique_id,team.images,team.gps,dateFormat(new Date(), "yyyy-mm-dd HH:MM:ss"), team.id],
+                queryString = `UPDATE teams SET name=?,description=?,league_id=?,age_group_id=?,association_id=?,state_id=?,lga_id=?, practice_time=?, year_founded=?,arena=?,
+                city=?,coach=?,coach_mobile=?,unique_id=?,images=?,gps=?,updated_at=? WHERE id=?`;
             console.log("About updating....");
             var query = connection.query(queryString, data);
             connection.release();
@@ -156,17 +143,30 @@ exports.create = function (req, res, next) {
     var rules = {
         name: 'required',
         description: 'required',
-        league_id: 'required',
-        age_group_id: 'required',
-        state_id: 'required',
-        practice_time: 'required'
+        league_id: 'required|numeric|min:1',
+        age_group_id: 'required|numeric|min:1',
+        association_id: 'required|numeric|min:1',
+        state_id: 'required|numeric|min:1',
+        lga_id: 'required|numeric|min:1',
+        practice_time: 'required',
+        year_founded: 'required',
+        arena: 'required',
+        city: 'required',
+        coach: 'required',
+        coach_mobile: 'required',
+        unique_id: 'required'
     };
     var validator = new ValidatorJs(obj, rules);
     if (validator.passes()) {
+        obj.images = obj.media ? obj.media : "";
+        var gps = obj.gps ?  obj.gps : "";
         pool.getConnection()
             .then((connection) => {
-                var data = [obj.name, obj.description, obj.league_id, obj.age_group_id, obj.state_id,obj.practice_time],
-                    queryString = 'INSERT INTO teams(name,description,league_id,age_group_id,state_id,practice_time) VALUES(?,?,?,?,?,?)';
+                var data = [obj.name, obj.description, obj.league_id, obj.age_group_id, obj.association_id, obj.state_id, obj.lga_id, obj.practice_time, obj.year_founded, obj.arena,
+                             obj.city,obj.coach,obj.coach_mobile,obj.unique_id,obj.images,obj.gps],
+                    queryString = `REPLACE INTO teams
+                                  (name,description,league_id,age_group_id,association_id,state_id,lga_id,practice_time,year_founded,arena,city,coach,coach_mobile,unique_id,images,gps)
+                                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
                 var query = connection.query(queryString, data);
                 connection.release();
                 return query;

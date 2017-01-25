@@ -69,97 +69,30 @@ exports.sanitize = function (str) {
     return   str  ?   str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\//g, '&#x2F;').replace(/\`/g, '&#96;') : null;
 };
 
-exports.processReport = function (data) {
-    var result = null;
+exports.processTeamImages = function (data) {
 
-    if(Array.isArray(data))
+    if(Array.isArray(data) && data.length)
     {
-        result = data.map(function (item) {
-            console.log("item ",item);
-            return processOneReport(item);
+        data = data.map(function (item) {
+            return processOneTeamImages(item);
         })
     }
     else
     {
-        result = processOneReport(data);
+        data = processOneTeamImages(data);
     }
 
-    return result;
+    return data;
 
 };
+function processOneTeamImages(data) {
 
-exports.processComment = function (data) {
-    var result = null;
-    if(Array.isArray(data))
+    if (data && data.images)
     {
-        result = data.map(function (item) {
-            return processOneComment(item);
-        });
-    }
-    else
-    {
-        result = processOneComment(data);
-    }
-
-    return result;
-};
-exports.processUpdate = function (data) {
-    var result = null;
-    if(Array.isArray(data))
-    {
-        result = data.map(function (item) {
-            return processOneUpdate(item);
-        });
-    }
-    else
-    {
-        result = processOneUpdate(data);
-    }
-
-    return result;
-};
-exports.processFollower = function (data) {
-    var result = null;
-    if(Array.isArray(data))
-    {
-        result = data.map(function (item) {
-            return processOneFollower(item);
-        });
-    }
-    else
-    {
-        result = processOneFollower(data);
-    }
-
-    return result;
-};
-function processOneReport(data) {
-    var result = _.pick(data,'report_id','title','address','lga','report_state','country','description','mobile_user_id',
-        'followed','followers', 'gps','sector','voted','votes','comments','created_at','updated_at');
-    result.user = _.pick(data,'mobile_user_id','first_name','last_name','avatar');
-
-    if (data.images)
-    {
-        result.images = data.images.split("|").map(function (image) {
+        data.images = data.images.split("|").map(function (image) {
             return _.unescape(image.trim());
         });
     }
 
-    return result;
+    return data;
 }
-function processOneComment(data) {
-    var result = _.pick(data,'report_comment_id','report_id','comment_body','mobile_user_id','created_at','updated_at');
-    result.user = _.pick(data,'mobile_user_id','first_name','last_name','avatar');
-    return result;
-}
-function processOneFollower(data) {
-    var result = _.pick(data,'report_follower_id','report_id','mobile_user_id','created_at','updated_at');
-    result.user = _.pick(data,'mobile_user_id','first_name','last_name','avatar');
-    return result;
-}
-function processOneUpdate(data) {
-    var result = _.pick(data,'report_update_id','update_body','report_id','mobile_user_id','created_at','updated_at');
-    result.user = _.pick(data,'mobile_user_id','first_name','last_name','avatar');
-    return result;
-}
-

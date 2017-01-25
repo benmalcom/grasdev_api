@@ -16,10 +16,10 @@
     },
     "db": {
         "mysql": {
-            "host":"localhost",
-            "database":"grasdev",
-            "username":"root",
-            "password":""
+            "host":"198.1.71.146",
+            "database":"pledgeni_grasdev_mobile",
+            "username":"pledgeni_rollar",
+            "password":"Pledge_2016???"
         }
     },
 

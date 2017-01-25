@@ -52,41 +52,16 @@ exports.findOne = function (req, res, next) {
 exports.find = function (req, res, next) {
     var error = {};
     var meta = {success: true, status_code: 200};
-    var query = req.query;
-
-    var per_page = query.per_page ? parseInt(query.per_page, "10") : config.get('itemsPerPage.default');
-    var page = query.page ? parseInt(query.page, "10") : 1;
-    var baseRequestUrl = config.get('app.baseUrl') + config.get('api.prefix') + "/states";
-    meta.pagination = {
-        per_page: per_page,
-        page: page,
-        current_page: helper.appendQueryString(baseRequestUrl, "page=" + page)
-    };
-
-    var offset = per_page * (page - 1);
     pool.getConnection()
         .then((connection) => {
-            var stateQuery = "SELECT * FROM states LIMIT " + offset + ", " + per_page;
-            var countQuery = "SELECT COUNT(id) as count_data FROM states";
-            var query = Q.all([
-                connection.query(stateQuery),
-                connection.query(countQuery),
-
-            ]);
+            var stateQuery = "SELECT * FROM states";
+            var query = connection.query(stateQuery);
             connection.release();
             return query;
         })
-        .spread((rows, countRow) => {
+        .then((rows) => {
             var states = rows[0];
-            var count = countRow[0][0].count_data;
-            meta.pagination.total_count = count;
-            if (count > (per_page * page)) {
-                var prev = page - 1;
-                meta.pagination.previous = prev;
-                meta.pagination.previous_page = helper.appendQueryString(baseRequestUrl, "page=" + prev);
-            }
             res.status(meta.status_code).json(formatResponse.do(meta, states));
-
         }).catch((err) => {
         console.log("err ", err);
         error = helper.transformToError({
@@ -97,6 +72,31 @@ exports.find = function (req, res, next) {
         return next(error);
     });
 
+};
+
+exports.getLgasByState = function (req, res, next) {
+    var error = {};
+    var meta = {success: true, status_code: 200};
+    var state_id = req.state.id;
+    pool.getConnection()
+        .then((connection) => {
+            var stateQuery = "SELECT * FROM lgas WHERE state_id = ?";
+            var query = connection.query(stateQuery,[state_id]);
+            connection.release();
+            return query;
+        })
+        .then((rows) => {
+            var lgas = rows[0];
+            res.status(meta.status_code).json(formatResponse.do(meta, lgas));
+        }).catch((err) => {
+        console.log("err ", err);
+        error = helper.transformToError({
+            code: 503,
+            message: "Error in server interaction, please try again",
+            extra: err
+        });
+        return next(error);
+    });
 };
 
 
