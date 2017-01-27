@@ -5,10 +5,11 @@ var jwt    = require('jsonwebtoken'); // used to create, sign, and verify tokens
 var config = require('config');
 var formatResponse = require('../utils/format-response');
 module.exports = function(req, res, next) {
-    var excludedUrls = ['/v1/users/verify/mobile/:mobile','/v1/users'];
+    console.log("url ",req.originalUrl);
+    var excludedUrls = ['/v1/users'];
 
    // if (req.method.toLowerCase() == "get") return next();
-    if (excludedUrls.indexOf(req.originalUrl) > -1) return next();
+    if (excludedUrls.indexOf(req.originalUrl) > -1 || req.originalUrl.startsWith('/v1/users/verify/mobile')) return next();
 
     // check header or url parameters or post parameters for token
     var token = req.body.token || req.query.token || req.headers['x-access-token'];
