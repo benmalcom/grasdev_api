@@ -76,6 +76,7 @@ exports.find = function (req, res, next) {
     var error = {};
     var meta = {success: true, status_code: 200};
     var query = req.query;
+    var extraQuery = "";
 
     var per_page = query.per_page ? parseInt(query.per_page, "10") : config.get('itemsPerPage.default');
     var page = query.page ? parseInt(query.page, "10") : 1;
@@ -85,6 +86,13 @@ exports.find = function (req, res, next) {
         page: page,
         current_page: helper.appendQueryString(baseRequestUrl, "page=" + page)
     };
+
+    if(query.user_id){
+        var user_id = query.user_id;
+        baseRequestUrl = helper.appendQueryString(baseRequestUrl, "user_id=" + user_id);
+        extraQuery = " AND user_id="+user_id+" ";
+    }
+
 
     var offset = per_page * (page - 1);
     pool.getConnection()
@@ -109,7 +117,7 @@ exports.find = function (req, res, next) {
                  INNER JOIN associations f ON a.association_id = f.id 
                  INNER JOIN age_groups g ON a.age_group_id = g.id 
                  INNER JOIN leagues h ON a.league_id = h.id 
-                 LIMIT ?,?`;
+                 `+extraQuery+`LIMIT ?,?`;
             var teamData = [userId,userId,offset,per_page];
 
 
