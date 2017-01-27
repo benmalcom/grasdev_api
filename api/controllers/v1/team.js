@@ -72,6 +72,7 @@ exports.findOne = function (req, res, next) {
     res.status(meta.code).json(formatResponse.do(meta, helper.processTeams(team)));
 };
 exports.find = function (req, res, next) {
+    var userId = req.userId;
     var error = {};
     var meta = {success: true, status_code: 200};
     var query = req.query;
@@ -88,10 +89,34 @@ exports.find = function (req, res, next) {
     var offset = per_page * (page - 1);
     pool.getConnection()
         .then((connection) => {
-            var teamsQuery = "SELECT * FROM teams LIMIT " + offset + ", " + per_page;
+            var teamsQuery = `SELECT 
+                 (SELECT  COUNT(team_id) FROM comments WHERE team_id=a.id) AS comments,
+                 (SELECT COUNT(team_id) FROM votes WHERE team_id=a.id) AS votes,
+                 (SELECT COUNT(team_id) FROM followers WHERE team_id=a.id) AS followers,
+                 
+                 CASE ISNULL((SELECT id FROM votes  WHERE team_id = a.id AND user_id=? LIMIT 1)) 
+                 WHEN 0 THEN 1 WHEN 1 THEN 0 end AS voted,
+                 CASE ISNULL((SELECT id FROM followers  WHERE team_id = a.id AND user_id=? LIMIT 1)) 
+                 WHEN 0 THEN 1 WHEN 1 THEN 0 end AS followed, 
+                
+                 a.id, a.name, a.description, a.images,a.coach, a.coach_mobile,a.practice_time,a.year_founded,a.arena,
+                 a.city,a.gps,a.created_at, a.updated_at, b.id, b.first_name,b.last_name, b.avatar, c.name as team_type,
+                 d.name as state, e.name as lga, f.name as association, g.name as age_group, h.name as league FROM teams a 
+                 JOIN users b ON a.user_id = b.id 
+                 INNER JOIN team_types c ON a.team_type_id = c.id
+                 INNER JOIN states d ON a.state_id = d.id 
+                 INNER JOIN lgas e ON a.lga_id = e.id 
+                 INNER JOIN associations f ON a.association_id = f.id 
+                 INNER JOIN age_groups g ON a.age_group_id = g.id 
+                 INNER JOIN leagues h ON a.league_id = h.id 
+                 LIMIT ?,?`;
+            var teamData = [userId,userId,offset,per_page];
+
+
+
             var countQuery = "SELECT COUNT(id) as count_data FROM teams";
             var query = Q.all([
-                connection.query(teamsQuery),
+                connection.query(teamsQuery,teamData),
                 connection.query(countQuery)
             ]);
             connection.release();
