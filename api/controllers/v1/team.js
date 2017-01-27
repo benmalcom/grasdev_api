@@ -12,10 +12,33 @@ var pool = require('../../others/db/mysql_connection');
 
 exports.param = function (req, res, next, id) {
     var error = {};
+    var userId = req.userId;
     pool.getConnection()
         .then((connection) => {
-            var queryString = "SELECT * FROM teams WHERE id=? LIMIT 1",
-                data = [id];
+            var queryString = `SELECT 
+                 (SELECT  COUNT(team_id) FROM comments WHERE team_id=a.id) AS comments,
+                 (SELECT COUNT(team_id) FROM votes WHERE team_id=a.id) AS votes,
+                 (SELECT COUNT(team_id) FROM followers WHERE team_id=a.id) AS followers,
+                 
+                 CASE ISNULL((SELECT id FROM votes  WHERE team_id = a.id AND user_id=? LIMIT 1)) 
+                 WHEN 0 THEN 1 WHEN 1 THEN 0 end AS voted,
+                 CASE ISNULL((SELECT id FROM followers  WHERE team_id = a.id AND user_id=? LIMIT 1)) 
+                 WHEN 0 THEN 1 WHEN 1 THEN 0 end AS followed, 
+                
+                 a.id, a.name, a.description, a.images,a.coach, a.coach_mobile,a.practice_time,a.year_founded,a.arena,
+                 a.city,a.gps,a.created_at, a.updated_at, b.id, b.first_name,b.last_name, b.avatar, c.name as team_type,
+                 d.name as state, e.name as lga, f.name as association, g.name as age_group, h.name as league FROM teams a 
+                 JOIN users b ON a.user_id = b.id 
+                 INNER JOIN team_types c ON a.team_type_id = c.id
+                 INNER JOIN states d ON a.state_id = d.id 
+                 INNER JOIN lgas e ON a.lga_id = e.id 
+                 INNER JOIN associations f ON a.association_id = f.id 
+                 INNER JOIN age_groups g ON a.age_group_id = g.id 
+                 INNER JOIN leagues h ON a.league_id = h.id 
+                 WHERE a.id=?`;
+            var data = [userId,userId,id];
+
+
             var query = connection.query(queryString, data);
             connection.release();
             return query;
@@ -46,9 +69,8 @@ exports.param = function (req, res, next, id) {
 exports.findOne = function (req, res, next) {
     var team = req.team;
     var meta = {code: 200, success: true};
-    res.status(meta.code).json(formatResponse.do(meta, helper.processTeamImages(team)));
+    res.status(meta.code).json(formatResponse.do(meta, helper.processTeams(team)));
 };
-
 exports.find = function (req, res, next) {
     var error = {};
     var meta = {success: true, status_code: 200};
@@ -84,7 +106,7 @@ exports.find = function (req, res, next) {
                 meta.pagination.previous = prev;
                 meta.pagination.previous_page = helper.appendQueryString(baseRequestUrl, "page=" + prev);
             }
-            res.status(meta.status_code).json(formatResponse.do(meta, helper.processTeamImages(teams)));
+            res.status(meta.status_code).json(formatResponse.do(meta, helper.processTeams(teams)));
 
         }).catch((err) => {
         console.log("err ", err);
@@ -97,8 +119,6 @@ exports.find = function (req, res, next) {
     });
 
 };
-
-
 exports.update = function (req, res, next) {
     var error = {};
     var meta = {success: true, status_code: 200};
@@ -136,7 +156,6 @@ exports.update = function (req, res, next) {
         return next(error);
     });
 };
-
 exports.create = function (req, res, next) {
     var obj = req.body,
         error = {};
@@ -158,15 +177,16 @@ exports.create = function (req, res, next) {
     };
     var validator = new ValidatorJs(obj, rules);
     if (validator.passes()) {
+        var userId = req.userId;
         obj.images = obj.media ? obj.media : "";
         var gps = obj.gps ?  obj.gps : "";
         pool.getConnection()
             .then((connection) => {
                 var data = [obj.name, obj.description, obj.league_id, obj.age_group_id, obj.association_id, obj.state_id, obj.lga_id, obj.practice_time, obj.year_founded, obj.arena,
-                             obj.city,obj.coach,obj.coach_mobile,obj.unique_id,obj.images,obj.gps],
+                             obj.city,obj.coach,obj.coach_mobile,obj.unique_id,obj.images,obj.gps,userId],
                     queryString = `REPLACE INTO teams
-                                  (name,description,league_id,age_group_id,association_id,state_id,lga_id,practice_time,year_founded,arena,city,coach,coach_mobile,unique_id,images,gps)
-                                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
+                                  (name,description,league_id,age_group_id,association_id,state_id,lga_id,practice_time,year_founded,arena,city,coach,coach_mobile,unique_id,images,gps,user_id)
+                                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`;
                 var query = connection.query(queryString, data);
                 connection.release();
                 return query;
@@ -194,7 +214,6 @@ exports.create = function (req, res, next) {
     }
 
 };
-
 exports.delete = function (req, res, next) {
     var error = {};
     var meta = {success: true, status_code: 200};
@@ -226,5 +245,167 @@ exports.delete = function (req, res, next) {
         });
         return next(error);
     });
+
+};
+exports.vote = function (req, res, next) {
+    var meta = {code:200,success:true};
+    var obj = req.body,
+        error = {};
+    var rules = { tag: 'required'};
+    var validator = new ValidatorJs(obj, rules);
+    if (validator.passes()) {
+        var userId = req.userId;
+        var tagCondition = obj.tag.toLowerCase() == "upvote";
+        pool.getConnection()
+            .then((connection) => {
+                var queryString = tagCondition ? 'INSERT INTO votes(user_id,team_id,voted) VALUES(?,?,?)'
+                    : 'DELETE FROM votes WHERE team_id = ? AND user_id = ?';
+                var data = tagCondition ?  [userId,req.team.id,1]
+                    : [parseInt(req.team.id,"10"),parseInt(userId,"10")];
+                var query = connection.query(queryString, data);
+                connection.release();
+                return query;
+            })
+            .then((result) => {
+                result = result[0];
+                meta.message = tagCondition ? "Team upvoted" : "Team unvoted";
+                res.status(meta.code).json(formatResponse.do(meta));
+            }).catch((err) => {
+            console.log("err ", err);
+            error = helper.transformToError({
+                code: 503,
+                message: "Error in server interaction, please try again",
+                extra: err
+            });
+            return next(error);
+        });
+    }
+    else {
+        error = helper.transformToError({
+            code: 400, message: "There are problems with your input",
+            messages: helper.validationErrorsToArray(validator.errors.all())
+        });
+        return next(error);
+    }
+
+};
+exports.follow = function (req, res, next) {
+    var meta = {code:200,success:true};
+    var obj = req.body,
+        error = {};
+    var rules = { tag: 'required'};
+    var validator = new ValidatorJs(obj, rules);
+    if (validator.passes()) {
+        var userId = req.userId;
+        var tagCondition = obj.tag.toLowerCase() == "follow";
+        pool.getConnection()
+            .then((connection) => {
+                var queryString = tagCondition ? 'INSERT INTO followers(user_id,team_id,followed) VALUES(?,?,?)'
+                    : 'DELETE FROM followers WHERE team_id = ? AND user_id = ?';
+                var data = tagCondition ?  [userId,req.team.id,1]
+                    : [parseInt(req.team.id,"10"),parseInt(userId,"10")];
+                var query = connection.query(queryString, data);
+                connection.release();
+                return query;
+            })
+            .then((result) => {
+                result = result[0];
+                meta.message = tagCondition ? "Now following" : "Unfollowed";
+                res.status(meta.code).json(formatResponse.do(meta));
+            }).catch((err) => {
+            console.log("err ", err);
+            error = helper.transformToError({
+                code: 503,
+                message: "Error in server interaction, please try again",
+                extra: err
+            });
+            return next(error);
+        });
+    }
+    else {
+        error = helper.transformToError({
+            code: 400, message: "There are problems with your input",
+            messages: helper.validationErrorsToArray(validator.errors.all())
+        });
+        return next(error);
+    }
+
+};
+exports.comment = function (req, res, next) {
+    var meta = {code:200,success:true};
+    var obj = req.body,
+        error = {};
+    var rules = {comment_body: 'required'};
+    var validator = new ValidatorJs(obj, rules);
+    if (validator.passes()) {
+        var userId = req.userId;
+        pool.getConnection()
+            .then((connection) => {
+                var data = [obj.comment_body,userId,req.team.id],
+                    queryString = 'INSERT INTO comments(comment_body,user_id,team_id) VALUES(?,?,?)';
+                var query = connection.query(queryString, data);
+                connection.release();
+                return query;
+            })
+            .then((result) => {
+                result = result[0];
+                meta.message = "You posted a comment!";
+                res.status(meta.code).json(formatResponse.do(meta));
+            }).catch((err) => {
+            console.log("err ", err);
+            error = helper.transformToError({
+                code: 503,
+                message: "Error in server interaction, please try again",
+                extra: err
+            });
+            return next(error);
+        });
+    }
+    else {
+        error = helper.transformToError({
+            code: 400, message: "There are problems with your input",
+            messages: helper.validationErrorsToArray(validator.errors.all())
+        });
+        return next(error);
+    }
+
+};
+exports.teamUpdate = function (req, res, next) {
+    var meta = {code:200,success:true};
+    var obj = req.body,
+        error = {};
+    var rules = {update_body: 'required'};
+    var validator = new ValidatorJs(obj, rules);
+    if (validator.passes()) {
+        var userId = req.userId;
+        pool.getConnection()
+            .then((connection) => {
+                var data = [obj.comment_body,userId,req.team.id],
+                    queryString = 'INSERT INTO updates(update_body,user_id,team_id) VALUES(?,?,?)';
+                var query = connection.query(queryString, data);
+                connection.release();
+                return query;
+            })
+            .then((result) => {
+                result = result[0];
+                meta.message = "You posted an update!";
+                res.status(meta.code).json(formatResponse.do(meta));
+            }).catch((err) => {
+            console.log("err ", err);
+            error = helper.transformToError({
+                code: 503,
+                message: "Error in server interaction, please try again",
+                extra: err
+            });
+            return next(error);
+        });
+    }
+    else {
+        error = helper.transformToError({
+            code: 400, message: "There are problems with your input",
+            messages: helper.validationErrorsToArray(validator.errors.all())
+        });
+        return next(error);
+    }
 
 };

@@ -3,6 +3,9 @@ var router = express.Router();
 var PlayerController = require('../controllers/v1/player');
 var config = require('config');
 
+
+var checkToken = require('../../api/middlewares/auth_token');
+router.use(checkToken);
 /* GET users listing. */
             router.param('id',PlayerController.param);
             router.route('/players')

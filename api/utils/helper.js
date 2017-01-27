@@ -1,8 +1,13 @@
 /**
  * Created by Ekaruztech on 7/18/2016.
  */
-var config = require('config'),
-    _ = require('underscore');
+var _ = require('underscore');
+var jwt = require('jsonwebtoken');
+var config = require('config');
+exports.signToken = function (obj) {
+    var token = jwt.sign(obj, config.get('authToken.superSecret'), {expiresIn: config.get('authToken.expiresIn')}); // expires in 24 hours
+    return token;
+};
 
 exports.validationErrorsToArray = function (error) {
     var errorsArray = [];
@@ -69,30 +74,33 @@ exports.sanitize = function (str) {
     return   str  ?   str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\//g, '&#x2F;').replace(/\`/g, '&#96;') : null;
 };
 
-exports.processTeamImages = function (data) {
+exports.processTeams = function (data) {
 
     if(Array.isArray(data) && data.length)
     {
         data = data.map(function (item) {
-            return processOneTeamImages(item);
+            return processOneTeam(item);
         })
     }
     else
     {
-        data = processOneTeamImages(data);
+        data = processOneTeam(data);
     }
 
     return data;
 
 };
-function processOneTeamImages(data) {
+function processOneTeam(data) {
 
+    var result = _.pick(data,'id','name','arena','lga','state','description','user_id','league','coach','coach_mobile',
+        'followed','followers', 'gps','team_type','age_group','association','voted','votes','comments','created_at','updated_at');
+    result.user = _.pick(data,'id','first_name','last_name','avatar');
     if (data && data.images)
     {
-        data.images = data.images.split("|").map(function (image) {
+        result.images = data.images.split("|").map(function (image) {
             return _.unescape(image.trim());
         });
     }
 
-    return data;
+    return result;
 }
