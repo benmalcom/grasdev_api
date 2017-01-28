@@ -42,7 +42,6 @@ exports.param = function (req, res, next, id) {
             return query;
         })
         .then((row) => {
-        console.log("row ",row);
             var team = row[0][0];
             if (team) {
                 req.team = team;
