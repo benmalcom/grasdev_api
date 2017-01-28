@@ -14,8 +14,8 @@ exports.param = function (req, res, next, id) {
     var error = {};
     pool.getConnection()
         .then((connection) => {
-            var queryString = `SELECT a.id, a.first_name, a.middle_name, a.last_name,a.occupation, a.gender, a.avatar, a.mobile, a.rating, a.hero,
-            a.position, a.weight, a.height, a.created_at, a.updated_at, b.name as team, c.name as age_group FROM players a
+            var queryString = `SELECT a.id, a.first_name, a.middle_name, a.last_name,a.occupation, a.gender, a.avatar, a.mobile, a.rating, 
+            a.hero,a.position, a.weight, a.height, a.created_at, a.updated_at, b.name as team, c.name as age_group FROM players a
             INNER JOIN teams b ON a.team_id = b.id
             INNER JOIN age_groups c ON a.age_group_id = c.id
             WHERE a.id = ? LIMIT 1`;
@@ -61,6 +61,12 @@ exports.find = function (req, res, next) {
     var per_page = query.per_page ? parseInt(query.per_page, "10") : config.get('itemsPerPage.default');
     var page = query.page ? parseInt(query.page, "10") : 1;
     var baseRequestUrl = config.get('app.baseUrl') + config.get('api.prefix') + "/players";
+    var filterQuery = "";
+    if(query.team_id)
+    {
+        filterQuery += " WHERE team_id = "+parseInt(query.team_id,"10");
+        baseRequestUrl = helper.appendQueryString(baseRequestUrl,"team_id="+query.team_id);
+    }
     meta.pagination = {
         per_page: per_page,
         page: page,
@@ -70,10 +76,14 @@ exports.find = function (req, res, next) {
     var offset = per_page * (page - 1);
     pool.getConnection()
         .then((connection) => {
-            var playersQuery = "SELECT * FROM players LIMIT " + offset + ", " + per_page;
-            var countQuery = "SELECT COUNT(id) as count_data FROM players";
+            var playersQuery = `SELECT a.id, a.first_name, a.middle_name, a.last_name,a.occupation, a.gender, a.avatar, a.mobile, a.rating,
+                a.hero,a.position, a.weight, a.height, a.created_at, a.updated_at, b.name as team, c.name as age_group FROM players a
+                INNER JOIN teams b ON a.team_id = b.id
+                INNER JOIN age_groups c ON a.age_group_id = c.id`+filterQuery+` LIMIT ?,? `;
+            var countQuery = "SELECT COUNT(id) as count_data FROM players"+filterQuery;
+            console.log("query string ",playersQuery);
             var query = Q.all([
-                connection.query(playersQuery),
+                connection.query(playersQuery,[offset,per_page]),
                 connection.query(countQuery),
 
             ]);
