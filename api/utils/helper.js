@@ -94,7 +94,7 @@ function processOneTeam(data) {
 
     if(data && _.isObject(data) && !_.isEmpty(data)){
 
-        var result = _.pick(data,'id','name','arena','lga','state','description','user_id','league','coach','coach_mobile',
+        var result = _.pick(data,'id','name','arena','lga','state','description','user_id','league','coach','coach_mobile','practice_time','year_founded',
             'followed','followers', 'gps','team_type','age_group','association','voted','votes','comments','created_at','updated_at');
         result.user = _.pick(data,'id','first_name','last_name','avatar');
         if (data && data.images)
