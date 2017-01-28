@@ -14,8 +14,12 @@ exports.param = function (req, res, next, id) {
     var error = {};
     pool.getConnection()
         .then((connection) => {
-            var queryString = "SELECT * FROM players WHERE id=? LIMIT 1",
-                data = [id];
+            var queryString = `SELECT a.id, a.first_name, a.middle_name, a.last_name,a.occupation, a.gender, a.avatar, a.mobile, a.rating, a.hero,
+            a.position, a.weight, a.height, a.created_at, a.updated_at, b.name as team, c.name as age_group FROM players a
+            INNER JOIN teams b ON a.team_id = b.id
+            INNER JOIN age_groups c ON a.age_group_id = c.id
+            WHERE a.id = ? LIMIT 1`;
+            var data = [id];
             var query = connection.query(queryString, data);
             connection.release();
             return query;
@@ -106,21 +110,6 @@ exports.update = function (req, res, next) {
     var player = req.player;
     var obj = req.body;
     _.extend(player, obj);
-    var first_name = player.first_name;
-    var last_name = player.last_name;
-    var team_id = player.team_id;
-    var age_group_id = player.age_group_id;
-    var middle_name = player.first_name;
-    var avatar = player.avatar;
-    var mobile = player.mobile;
-    var gender = player.gender;
-    var height = player.height;
-    var weight = player.weight;
-    var position = player.position;
-    var occupation = player.occupation;
-    var rating = player.rating;
-    var hero = player.hero;
-
     pool.getConnection()
         .then((connection) => {
             var data = [player.first_name, player.middle_name, player.last_name, player.team_id, player.age_group_id, player.avatar, player.mobile, player.gender,

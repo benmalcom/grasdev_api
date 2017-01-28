@@ -17,7 +17,7 @@ module.exports = function(req, res, next) {
     // decode token
     if (token) {
         // verifies secret and checks exp
-        jwt.verify(token, config.get('authToken.superSecret'), function(err, decoded) {
+        jwt.verify(token, config.get('authToken.superSecret'),{ignoreExpiration:true}, function(err, decoded) {
             console.log('Verifying token!');
             if (err) {
                 var message = "";
