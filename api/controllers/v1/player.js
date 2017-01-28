@@ -123,7 +123,8 @@ exports.update = function (req, res, next) {
 
     pool.getConnection()
         .then((connection) => {
-            var data = [first_name, middle_name, last_name, team_id, age_group_id, avatar, mobile, gender, height, weight, position, occupation, rating, hero, dateFormat(new Date(), "yyyy-mm-dd HH:MM:ss"), player.id],
+            var data = [player.first_name, player.middle_name, player.last_name, player.team_id, player.age_group_id, player.avatar, player.mobile, player.gender,
+                    player.height, player.weight, player.position, player.occupation, player.rating, player.hero, dateFormat(new Date(), "yyyy-mm-dd HH:MM:ss"), player.id],
                 queryString = 'UPDATE players SET first_name=?,middle_name=?,last_name=?,team_id=?,age_group_id=?,avatar=?,mobile=?,' +
                     'gender=?,height=?,weight=?,position=?,occupation=?,rating=?,hero=?,updated_at=? WHERE id=?';
             console.log("About updating....");
@@ -159,14 +160,27 @@ exports.create = function (req, res, next) {
         first_name: 'required',
         last_name: 'required',
         team_id: 'required',
-        age_group_id: 'required'
-    };
+        age_group_id: 'required',
+        middle_name: 'required',
+        avatar: 'required',
+        mobile: 'required',
+        gender: 'required',
+        height: 'required',
+        weight: 'required',
+        position: 'required',
+        occupation: 'required',
+        rating: 'required',
+        hero: 'required'
+
+};
     var validator = new ValidatorJs(obj, rules);
     if (validator.passes()) {
         pool.getConnection()
             .then((connection) => {
-                var data = [obj.first_name, obj.last_name, obj.team_id, obj.age_group_id],
-                    queryString = 'INSERT INTO players(first_name,last_name,team_id,age_group_id) VALUES(?,?,?,?)';
+                var data = [obj.first_name,obj.middle_name, obj.last_name, obj.team_id, obj.age_group_id, obj.avatar, obj.mobile, obj.gender,
+                        obj.height, obj.weight, obj.position, obj.occupation, obj.rating, obj.hero],
+                    queryString = 'INSERT INTO players(first_name,middle_name,last_name,team_id,age_group_id,avatar,mobile,gender,height,weight,position,occupation,rating,hero) ' +
+                        'VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)';
                 var query = connection.query(queryString, data);
                 connection.release();
                 return query;

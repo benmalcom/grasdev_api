@@ -92,15 +92,19 @@ exports.processTeams = function (data) {
 };
 function processOneTeam(data) {
 
-    var result = _.pick(data,'id','name','arena','lga','state','description','user_id','league','coach','coach_mobile',
-        'followed','followers', 'gps','team_type','age_group','association','voted','votes','comments','created_at','updated_at');
-    result.user = _.pick(data,'id','first_name','last_name','avatar');
-    if (data && data.images)
-    {
-        result.images = data.images.split("|").map(function (image) {
-            return _.unescape(image.trim());
-        });
+    if(data && _.isObject(data) && !_.isEmpty(data)){
+
+        var result = _.pick(data,'id','name','arena','lga','state','description','user_id','league','coach','coach_mobile',
+            'followed','followers', 'gps','team_type','age_group','association','voted','votes','comments','created_at','updated_at');
+        result.user = _.pick(data,'id','first_name','last_name','avatar');
+        if (data && data.images)
+        {
+            result.images = data.images.split("|").map(function (image) {
+                return _.unescape(image.trim());
+            });
+        }
+        return result;
     }
 
-    return result;
+    return data;
 }
