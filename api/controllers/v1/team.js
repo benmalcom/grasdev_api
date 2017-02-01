@@ -25,7 +25,7 @@ exports.param = function (req, res, next, id) {
                  CASE ISNULL((SELECT id FROM followers  WHERE team_id = a.id AND user_id = ? LIMIT 1)) 
                  WHEN 0 THEN 1 WHEN 1 THEN 0 end AS followed, 
                  a.id, a.name, a.description, a.images,a.coach, a.coach_mobile,a.practice_time,a.year_founded,a.arena,
-                 a.city,a.gps,a.created_at, a.updated_at, b.id, b.first_name,b.last_name, b.avatar, c.name as team_type,
+                 a.city,a.gps,a.created_at, a.updated_at, b.id as user_id, b.first_name,b.last_name, b.avatar, c.name as team_type,
                  d.name as state, e.name as lga, f.name as association, g.name as age_group, h.name as league FROM teams a 
                  JOIN users b ON a.user_id = b.id 
                  INNER JOIN team_types c ON a.team_type_id = c.id
@@ -133,7 +133,7 @@ exports.find = function (req, res, next) {
                   CASE ISNULL((SELECT id FROM followers  WHERE team_id = a.id AND user_id=? LIMIT 1))
                   WHEN 0 THEN 1 WHEN 1 THEN 0 end AS followed,
                   a.id, a.name, a.description, a.images,a.coach, a.coach_mobile,a.practice_time,a.year_founded,a.arena,
-                  a.city,a.gps,a.user_id,a.league_id,a.created_at, a.updated_at, b.id, b.first_name,b.last_name, b.avatar, c.name as team_type,
+                  a.city,a.gps,a.user_id,a.league_id,a.created_at, a.updated_at, b.id as user_id, b.first_name,b.last_name, b.avatar, c.name as team_type,
                   d.name as state, e.name as lga, f.name as association, g.name as age_group, h.name as league FROM teams a
                   JOIN users b ON a.user_id = b.id
                   INNER JOIN team_types c ON a.team_type_id = c.id
